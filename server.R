@@ -16,12 +16,12 @@
 # Data
 
         download.file("https://docs.google.com/spreadsheet/pub?key=0AgOyIYCzS_DMdEpNZGF4b040WG4zYkxJd0lRRWEtTlE&single=true&gid=2&output=csv",destfile="visits.csv")
-        dfVisits <- tbl_df(read.csv("visits.csv"))
+        dfVisits <- tbl_df(read.csv("visits.csv", stringsAsFactors = FALSE))
         names(dfVisits)[1] <- c("ID")
         dfVisits$ID <- as.numeric(as.character(dfVisits$ID))
         
         download.file("https://docs.google.com/spreadsheet/pub?key=0AqP7_vsrE9jldGhDcWllMk8wZEZNSXcyQS15YTM3QUE&single=true&gid=4&output=csv",destfile="directory.csv")
-        dfDirectory <- tbl_df(read.csv("directory.csv"))
+        dfDirectory <- tbl_df(read.csv("directory.csv", stringsAsFactors = FALSE))
         
         df1 <- left_join(dfVisits, dfDirectory) %>% # df1 = All Visits
                 mutate(Visit.Date = as.Date(Date, format = "%m/%d/%Y"),
@@ -33,6 +33,36 @@
                 mutate(Full.Name = paste0(Last.Name,", ",First.Name)) %>% 
                 arrange(desc(Wks.Since.Visit))
 
+        
+        
+        # Bday Warnings...
+        
+        mySysDate <- Sys.Date() - 30
+        
+        # dfBday <- df2 %>% 
+        #         select(Last.Name, First.Name, Birthday) %>% 
+        #         mutate(Birthday = paste0(Birthday,"/", year(mySysDate))) %>% 
+        #         mutate(Birthday = as.Date(Birthday, "%m/%d/%Y")) %>% 
+        #         mutate(BirthdayNextYear = Birthday + 365) %>% 
+        #         filter(Birthday > mySysDate-10 & Birthday < mySysDate+30 |
+        #                 BirthdayNextYear < mySysDate+30 ) %>%
+        #         ungroup() %>% select(-BirthdayNextYear) %>% 
+        #         arrange(Birthday)
+        
+        
+        
+        dfBday <- df2 %>%
+                select(Last.Name, First.Name, Birthday) %>%
+                mutate(Birthday = paste0(Birthday,"/", year(Sys.Date()))) %>%
+                mutate(Birthday = as.Date(Birthday, "%m/%d/%Y")) %>%
+                mutate(BirthdayNextYear = Birthday + 365) %>%
+                filter(Birthday > Sys.Date()-10 & Birthday < Sys.Date()+30 |
+                               BirthdayNextYear < Sys.Date()+30 ) %>%
+                ungroup() %>% select(-ID, -BirthdayNextYear) %>% 
+                mutate(Birthday = paste0(month(Birthday),"/",day(Birthday))) %>% 
+                arrange(Birthday)
+
+        
 shinyServer(function(input, output, session){
         
         # User Flow
@@ -52,6 +82,12 @@ shinyServer(function(input, output, session){
         observeEvent(input$linkReport, {
                 shinyjs::toggle(id = "divReport", anim = TRUE, animType = "Slide")
         })
+        
+        # Birthdays
+        
+        output$dfBday <- DT::renderDataTable({
+                dfBday
+        }, filter="bottom", options = list(pageLength = 5, lengthMenu = c(5, 10, 15, 20, 50, 100)))
         
         # Last Visits
         

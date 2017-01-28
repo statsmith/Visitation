@@ -27,6 +27,16 @@ myBody <- dashboardBody(
                 column(
                         width=9,
                         
+                        div(id="divBday",
+                          
+                            box(
+                                    width = 12, title = "Birthdays",
+                                    DT::dataTableOutput("dfBday")
+                            )  
+                            
+                        ),
+                        
+                        
                         div(
                                 id="divLastVisits",
                                 box(
